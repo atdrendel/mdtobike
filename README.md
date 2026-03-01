@@ -52,16 +52,17 @@ mdtobike completion fish | source
 ## Development
 
 ```bash
-# Build
-go build .
-
 # Run tests
-go test ./...
+./bin/test.sh
 
 # Build with version info
-go build -ldflags "-X github.com/atdrendel/mdtobike/internal/version.Version=1.0.0 \
-  -X github.com/atdrendel/mdtobike/internal/version.Commit=$(git rev-parse --short HEAD) \
-  -X github.com/atdrendel/mdtobike/internal/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" .
+./bin/build.sh
+
+# Format code
+./bin/format.sh
+
+# Install to /usr/local/bin
+./bin/install.sh
 ```
 
 ## Project Structure
@@ -77,6 +78,11 @@ mdtobike/
 ├── internal/
 │   ├── bike/            # Bike format types and rendering
 │   └── version/         # Build-time version info
+├── bin/                 # Development scripts
+│   ├── test.sh          # Run tests
+│   ├── build.sh         # Build with version info
+│   ├── format.sh        # Format code
+│   └── install.sh       # Build and install to /usr/local/bin
 ├── CLAUDE.md            # Development guidelines
 └── README.md
 ```

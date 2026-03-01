@@ -187,31 +187,41 @@ mdtobike/
 │   │   └── convert_test.go
 │   └── version/               # Build-time version info
 │       └── version.go
+├── bin/                       # Development scripts
+│   ├── test.sh                # Run tests
+│   ├── build.sh               # Build with version info
+│   ├── format.sh              # Format code (gofmt)
+│   └── install.sh             # Build and install to /usr/local/bin
 ├── CLAUDE.md
 ├── README.md
 └── go.mod
 ```
 
-## Build and Version Management
+## Development Scripts
+
+All development commands live in `bin/` and should be run from the project root:
+
+```bash
+./bin/test.sh       # Run tests (go test ./...)
+./bin/build.sh      # Build with ldflags (version/commit/date)
+./bin/format.sh     # Format code (gofmt -w .)
+./bin/install.sh    # Build and install to /usr/local/bin
+```
+
+Each script follows a common scaffolding pattern (from web-to-markdown-apple):
+- `set -o errexit`, `nounset`, `pipefail` for strict error handling
+- `TRACE=1 ./bin/test.sh` enables `set -o xtrace` for debugging
+- `--help` / `-h` flag prints usage
+- `pushd`/`popd` to the project root so scripts work from any directory
 
 ### Version Injection via ldflags
 
+`build.sh` and `install.sh` inject version info automatically:
+
 ```bash
-go build -ldflags "-X github.com/atdrendel/mdtobike/internal/version.Version=1.0.0 \
+go build -ldflags "-X github.com/atdrendel/mdtobike/internal/version.Version=dev \
   -X github.com/atdrendel/mdtobike/internal/version.Commit=$(git rev-parse --short HEAD) \
   -X github.com/atdrendel/mdtobike/internal/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" .
-```
-
-### Development Build
-
-```bash
-go build .
-```
-
-### Running Tests
-
-```bash
-go test ./...
 ```
 
 ## Bike Format Specification
