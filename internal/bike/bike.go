@@ -47,13 +47,13 @@ type StrikethroughRun struct{ Children []InlineNode }
 // MarkRun is highlighted text (<mark>).
 type MarkRun struct{ Children []InlineNode }
 
-func (TextRun) inlineNode()           {}
-func (StrongRun) inlineNode()         {}
-func (EmRun) inlineNode()             {}
-func (CodeRun) inlineNode()           {}
-func (LinkRun) inlineNode()           {}
-func (StrikethroughRun) inlineNode()  {}
-func (MarkRun) inlineNode()           {}
+func (TextRun) inlineNode()          {}
+func (StrongRun) inlineNode()        {}
+func (EmRun) inlineNode()            {}
+func (CodeRun) inlineNode()          {}
+func (LinkRun) inlineNode()          {}
+func (StrikethroughRun) inlineNode() {}
+func (MarkRun) inlineNode()          {}
 
 // Row is a single Bike outline row (<li>).
 type Row struct {
