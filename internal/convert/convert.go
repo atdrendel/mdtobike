@@ -113,6 +113,8 @@ func (c *converter) convertBlock(n ast.Node) []*bike.Row {
 		return c.convertBlockquote(node)
 	case *ast.List:
 		return c.convertList(node)
+	case *extast.Table:
+		return c.convertTable(node)
 	case *ast.ThematicBreak:
 		return []*bike.Row{c.convertThematicBreak()}
 	case *ast.HTMLBlock:
@@ -291,6 +293,50 @@ func (c *converter) convertHTMLBlock(n *ast.HTMLBlock) *bike.Row {
 		Type:    bike.RowTypeBody,
 		Content: []bike.InlineNode{bike.TextRun{Text: text}},
 	}
+}
+
+func (c *converter) convertTable(n *extast.Table) []*bike.Row {
+	// Header row becomes a parent body row; data rows become its children.
+	// Cells within each row are joined with " — ".
+	var headerRow *bike.Row
+	var dataRows []*bike.Row
+
+	for child := n.FirstChild(); child != nil; child = child.NextSibling() {
+		content := c.extractTableRowCells(child)
+		row := &bike.Row{
+			ID:      c.idGen.Next(),
+			Type:    bike.RowTypeBody,
+			Content: content,
+		}
+		switch child.(type) {
+		case *extast.TableHeader:
+			headerRow = row
+		case *extast.TableRow:
+			dataRows = append(dataRows, row)
+		}
+	}
+
+	if headerRow != nil {
+		headerRow.Children = dataRows
+		return []*bike.Row{headerRow}
+	}
+	// No header — return data rows as siblings
+	return dataRows
+}
+
+// extractTableRowCells extracts inline content from all cells in a table row,
+// joining them with " — " separators.
+func (c *converter) extractTableRowCells(row ast.Node) []bike.InlineNode {
+	var result []bike.InlineNode
+	first := true
+	for cell := row.FirstChild(); cell != nil; cell = cell.NextSibling() {
+		if !first {
+			result = append(result, bike.TextRun{Text: " — "})
+		}
+		first = false
+		result = append(result, c.extractInlines(cell)...)
+	}
+	return result
 }
 
 // extractInlines collects inline content from a block node's children.

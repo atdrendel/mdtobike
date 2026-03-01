@@ -517,6 +517,59 @@ func assertContains(t *testing.T, s, substr string) {
 	}
 }
 
+func TestTable(t *testing.T) {
+	md := "| Name | Link |\n|---|---|\n| Example | [example.com](https://example.com) |\n| Other | [other.com](https://other.com) |"
+	doc, _ := fromMarkdown([]byte(md), fixedTime)
+
+	// Should produce 1 top-level row (header) with 2 children (data rows)
+	if len(doc.Rows) != 1 {
+		t.Fatalf("expected 1 top-level row, got %d", len(doc.Rows))
+	}
+	header := doc.Rows[0]
+	if header.Type != bike.RowTypeBody {
+		t.Errorf("header row should be body, got %s", header.Type)
+	}
+	headerText := inlineText(header.Content)
+	if headerText != "Name — Link" {
+		t.Errorf("header text = %q, want %q", headerText, "Name — Link")
+	}
+	if len(header.Children) != 2 {
+		t.Fatalf("expected 2 children (data rows), got %d", len(header.Children))
+	}
+	// Verify data rows preserve inline formatting
+	output := convertAndRender(t, md)
+	assertContains(t, output, `<a href="https://example.com">example.com</a>`)
+	assertContains(t, output, `<a href="https://other.com">other.com</a>`)
+}
+
+func TestTablePlainText(t *testing.T) {
+	md := "| A | B | C |\n|---|---|---|\n| 1 | 2 | 3 |\n| 4 | 5 | 6 |"
+	doc, _ := fromMarkdown([]byte(md), fixedTime)
+
+	if len(doc.Rows) != 1 {
+		t.Fatalf("expected 1 top-level row, got %d", len(doc.Rows))
+	}
+	header := doc.Rows[0]
+	headerText := inlineText(header.Content)
+	if headerText != "A — B — C" {
+		t.Errorf("header text = %q, want %q", headerText, "A — B — C")
+	}
+	if len(header.Children) != 2 {
+		t.Fatalf("expected 2 data rows, got %d", len(header.Children))
+	}
+	firstText := inlineText(header.Children[0].Content)
+	if firstText != "1 — 2 — 3" {
+		t.Errorf("first data row = %q, want %q", firstText, "1 — 2 — 3")
+	}
+}
+
+func TestTableWithFormatting(t *testing.T) {
+	md := "| Feature | Status |\n|---|---|\n| **Auth** | `done` |"
+	output := convertAndRender(t, md)
+	assertContains(t, output, `<strong>Auth</strong>`)
+	assertContains(t, output, `<code>done</code>`)
+}
+
 func assertNotContains(t *testing.T, s, substr string) {
 	t.Helper()
 	if strings.Contains(s, substr) {

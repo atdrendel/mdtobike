@@ -460,6 +460,7 @@ The following is an annotated excerpt from a real Bike 1.x file, demonstrating h
 | `- [ ] task` | `data-type="task"` | Uncompleted task |
 | `- [x] task` | `data-type="task"` + `data-done` | Completed task |
 | `![alt](url)` | Body row with source text | Images have no Bike equivalent; render as plain text |
+| GFM table | Body rows (nested) | Header row as parent, data rows as children; cells joined with " — " |
 | Raw HTML blocks | Body row with text content | Strip tags, keep text content |
 
 ### Heading Hierarchy (Flat-to-Tree Conversion)
