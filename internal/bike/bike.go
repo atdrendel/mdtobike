@@ -16,6 +16,7 @@ const (
 	RowTypeOrdered   RowType = "ordered"   // ordered list item
 	RowTypeUnordered RowType = "unordered" // unordered list item
 	RowTypeTask      RowType = "task"      // task/checkbox item
+	RowTypeHR        RowType = "hr"        // horizontal rule
 )
 
 // InlineNode represents inline content within a row's <p> element.

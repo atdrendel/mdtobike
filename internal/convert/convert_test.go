@@ -180,7 +180,9 @@ func TestTaskListChecked(t *testing.T) {
 func TestThematicBreak(t *testing.T) {
 	md := "Before\n\n---\n\nAfter"
 	output := convertAndRender(t, md)
-	assertContains(t, output, `<p>---</p>`)
+	assertContains(t, output, `data-type="hr"`)
+	assertContains(t, output, `<p/>`)
+	assertNotContains(t, output, `<p>---</p>`)
 }
 
 func TestImage(t *testing.T) {
@@ -231,7 +233,7 @@ code here
 	assertContains(t, output, `data-type="task"`)
 	assertContains(t, output, `data-type="quote"`)
 	assertContains(t, output, `data-type="code"`)
-	assertContains(t, output, `<p>---</p>`)
+	assertContains(t, output, `data-type="hr"`)
 	assertContains(t, output, `<strong>Bold</strong>`)
 	assertContains(t, output, `<em>italic</em>`)
 }

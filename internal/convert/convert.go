@@ -274,9 +274,8 @@ func (c *converter) convertListItem(item *ast.ListItem, list *ast.List) *bike.Ro
 
 func (c *converter) convertThematicBreak() *bike.Row {
 	return &bike.Row{
-		ID:      c.idGen.Next(),
-		Type:    bike.RowTypeBody,
-		Content: []bike.InlineNode{bike.TextRun{Text: "---"}},
+		ID:   c.idGen.Next(),
+		Type: bike.RowTypeHR,
 	}
 }
 

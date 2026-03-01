@@ -428,6 +428,21 @@ func TestRenderUnorderedRow(t *testing.T) {
 	assertContains(t, output, `<li id="u1" data-type="unordered">`)
 }
 
+func TestRenderHRRow(t *testing.T) {
+	doc := &Document{
+		RootID: "root1",
+		Rows: []*Row{
+			{
+				ID:   "hr1",
+				Type: RowTypeHR,
+			},
+		},
+	}
+	output := renderToString(t, doc)
+	assertContains(t, output, `<li id="hr1" data-type="hr">`)
+	assertContains(t, output, `<p/>`)
+}
+
 func TestRenderDocumentStructure(t *testing.T) {
 	// Verify the complete document skeleton
 	doc := &Document{

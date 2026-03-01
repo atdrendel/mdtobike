@@ -284,8 +284,7 @@ Verified against real Bike 1.x output:
 | `ordered` | `1.`, `2.`, etc. | Ordered list item; nesting via `<ul>` inside parent `<li>` |
 | `unordered` | `-`, `*`, `+` | Unordered list item; nesting via `<ul>` inside parent `<li>` |
 | `task` | `- [ ]`, `- [x]` | Task/checkbox item |
-
-**Bike does NOT support horizontal rules.** There is no `hr` row type.
+| `hr` | `---` horizontal rule | Horizontal rule; empty `<p/>`, no content |
 
 ### Task Completion
 
@@ -350,7 +349,7 @@ Note: `<span>` can contain just whitespace (e.g., `<span> </span>` between two f
 
 ### Comprehensive Real-World Example
 
-The following is an annotated excerpt from a real Bike 1.x file, demonstrating headings with nested tasks, inline formatting with span wrapping, note rows, code rows, blockquotes, ordered/unordered lists, empty rows, and body rows:
+The following is an annotated excerpt from a real Bike 1.x file, demonstrating headings with nested tasks, inline formatting with span wrapping, note rows, code rows, blockquotes, ordered/unordered lists, horizontal rules, empty rows, and body rows:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -429,6 +428,11 @@ The following is an annotated excerpt from a real Bike 1.x file, demonstrating h
         </ul>
       </li>
 
+      <!-- Horizontal rule -->
+      <li id="hr" data-type="hr">
+        <p/>
+      </li>
+
       <!-- Plain body rows (no data-type) -->
       <li id="cK">
         <p>Here's a plain text row</p>
@@ -450,7 +454,7 @@ The following is an annotated excerpt from a real Bike 1.x file, demonstrating h
 | Paragraph | *(no data-type)* | Default body row |
 | `> Blockquote` | `data-type="quote"` | One row per line |
 | ```` ``` code ```` | `data-type="code"` | One row per line; language info dropped |
-| `---` | Body row with `---` text | Bike has no HR type; render as plain text |
+| `---` | `data-type="hr"` | Horizontal rule; empty `<p/>` |
 | `- item` | `data-type="unordered"` | Unordered list; nesting preserved |
 | `1. item` | `data-type="ordered"` | Ordered list; nesting preserved |
 | `- [ ] task` | `data-type="task"` | Uncompleted task |
