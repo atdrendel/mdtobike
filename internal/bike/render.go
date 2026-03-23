@@ -7,6 +7,16 @@ import (
 	"strings"
 )
 
+// escapeText escapes text for use in XML text content.
+// Only &, <, > need escaping in text content (not in attributes).
+// Bike.app leaves ' and " as literal characters.
+func escapeText(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	return s
+}
+
 // Render writes the document as Bike XHTML to the given writer.
 func (d *Document) Render(w io.Writer) error {
 	bw := &bikeWriter{w: w}
@@ -122,10 +132,10 @@ func (bw *bikeWriter) renderInline(node InlineNode, wrapText bool) {
 	case TextRun:
 		if wrapText {
 			bw.write(`<span>`)
-			bw.write(html.EscapeString(n.Text))
+			bw.write(escapeText(n.Text))
 			bw.write(`</span>`)
 		} else {
-			bw.write(html.EscapeString(n.Text))
+			bw.write(escapeText(n.Text))
 		}
 	case StrongRun:
 		bw.write(`<strong>`)
@@ -137,7 +147,7 @@ func (bw *bikeWriter) renderInline(node InlineNode, wrapText bool) {
 		bw.write(`</em>`)
 	case CodeRun:
 		bw.write(`<code>`)
-		bw.write(html.EscapeString(n.Text))
+		bw.write(escapeText(n.Text))
 		bw.write(`</code>`)
 	case LinkRun:
 		bw.write(fmt.Sprintf(`<a href="%s">`, html.EscapeString(n.URL)))

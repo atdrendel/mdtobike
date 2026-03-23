@@ -1,10 +1,10 @@
-# mdtobike Development Guidelines
+# bikemark Development Guidelines
 
-This document defines conventions for developing the mdtobike CLI. Follow these guidelines to ensure consistency with Unix CLI best practices.
+This document defines conventions for developing the bikemark CLI. Follow these guidelines to ensure consistency with Unix CLI best practices.
 
 ## Core Philosophy
 
-1. **Do one thing well** — Convert Markdown to Bike format, and do it correctly
+1. **Do one thing well** — Convert losslessly between Markdown and Bike format
 2. **Composability** — Read from stdin or file, write to stdout; pipeable by default
 3. **Least surprise** — Behave like other Unix tools users already know
 4. **Silence is golden** — Don't output unnecessary information on success
@@ -13,35 +13,56 @@ This document defines conventions for developing the mdtobike CLI. Follow these 
 
 ## Command Structure
 
-mdtobike is a **single-command CLI** (not a subcommand-based CRUD tool like ankigo). The root command performs the conversion:
+bikemark is a **single-command CLI**. The root command performs bidirectional conversion between Markdown and Bike format, auto-detecting the input format:
 
 ```bash
-mdtobike input.md > output.bike       # file argument
-cat input.md | mdtobike > output.bike  # stdin
-echo "# Hello" | mdtobike             # inline
+# File argument — auto-detect direction from extension:
+bikemark input.md > output.bike       # Markdown → Bike
+bikemark input.bike > output.md       # Bike → Markdown
+
+# Stdin — auto-detect from content:
+cat input.md | bikemark > output.bike
+cat input.bike | bikemark > output.md
+echo "# Hello" | bikemark             # inline (detected as Markdown)
+
+# Explicit flags override auto-detection:
+bikemark -m input.bike                # force treat input as Markdown
+bikemark -b input.md                  # force treat input as Bike
+cat ambiguous | bikemark --markdown   # stdin with explicit format
 ```
 
 The only subcommands are `version` and `completion`.
 
+### Format Detection
+
+Detection priority (first match wins):
+
+1. **Flags**: `--markdown / -m` or `--bike / -b` (mutually exclusive — error if both)
+2. **File extension**: `.md` / `.markdown` = Markdown, `.bike` = Bike
+3. **Content sniffing**: starts with `<?xml` = Bike, otherwise Markdown
+4. **Error**: if still ambiguous after all checks
+
 ### Input
 
-- **File argument**: `mdtobike input.md` — reads the file
-- **stdin**: `cat input.md | mdtobike` — reads from stdin when no argument given
+- **File argument**: `bikemark input.md` — reads the file
+- **stdin**: `cat input.md | bikemark` — reads from stdin when no argument given
 - Accepts 0 or 1 positional arguments (`cobra.MaximumNArgs(1)`)
+- **`--markdown / -m`**: force treat input as Markdown (bool, optional)
+- **`--bike / -b`**: force treat input as Bike (bool, optional)
 
 ### Output
 
-- **stdout**: Bike format output (the converted document)
+- **stdout**: Bike format OR Markdown, depending on detected input format
 - **stderr**: Errors, warnings, progress messages
 
 ## Output Conventions
 
 | Stream | Use for |
 |--------|---------|
-| stdout | Bike format output — must be valid Bike HTML |
+| stdout | Converted output — valid Bike HTML or valid Markdown |
 | stderr | Errors, warnings — human-readable |
 
-The output must be valid Bike format that opens correctly in Bike.app. Never mix prose with the Bike output on stdout.
+The output must be valid for its format: Bike output must open correctly in Bike.app, Markdown output must be well-formed GFM. Never mix prose with the converted output on stdout.
 
 ## Error Handling
 
@@ -84,7 +105,7 @@ RunE: func(cmd *cobra.Command, args []string) error {
 |------|---------|
 | 0 | Success |
 | 1 | General error (file not found, parse error, conversion error) |
-| 2 | Misuse of command (bad flags, too many args) |
+| 2 | Misuse of command (bad flags, too many args, both --markdown and --bike) |
 
 ## Testing Requirements
 
@@ -101,7 +122,9 @@ All command logic lives in testable functions that accept `io.Reader`/`io.Writer
 ```go
 // Options struct holds flags
 type convertOptions struct {
-    // flags go here
+    markdown bool // --markdown / -m flag
+    bike     bool // --bike / -b flag
+    filename string // filename for extension-based detection
 }
 
 // Cobra command extracts flags and calls the testable function
@@ -124,14 +147,19 @@ func TestRunConvert(t *testing.T) {
     tests := []struct {
         name       string
         input      string
+        opts       convertOptions
         wantOutput string
         wantErr    bool
     }{
         {
-            name:       "heading",
+            name:       "markdown to bike: heading",
             input:      "# Hello",
             wantOutput: `<li id="`,  // partial match
-            wantErr:    false,
+        },
+        {
+            name:       "bike to markdown: heading",
+            input:      `<?xml version="1.0" encoding="UTF-8"?>...`,
+            wantOutput: "# ",  // partial match
         },
     }
 
@@ -140,9 +168,8 @@ func TestRunConvert(t *testing.T) {
             input := strings.NewReader(tt.input)
             stdout := new(bytes.Buffer)
             stderr := new(bytes.Buffer)
-            opts := convertOptions{}
 
-            err := runConvert(input, stdout, stderr, opts)
+            err := runConvert(input, stdout, stderr, tt.opts)
 
             if (err != nil) != tt.wantErr {
                 t.Errorf("runConvert() error = %v, wantErr %v", err, tt.wantErr)
@@ -158,22 +185,26 @@ func TestRunConvert(t *testing.T) {
 ### What to Test
 
 - Valid Markdown input produces valid Bike output
-- Each row type maps correctly (headings, lists, code blocks, etc.)
-- Inline formatting (bold, italic, code, links)
-- Nesting/hierarchy from heading structure
+- Valid Bike input produces valid Markdown output
+- Each row type maps correctly in both directions
+- Inline formatting (bold, italic, code, links) in both directions
+- Nesting/hierarchy: heading structure (flat→tree and tree→flat)
 - Empty input
 - Stdin vs file input
+- Format detection: extension, content sniffing, flags
+- Flag validation: error when both --markdown and --bike provided
 - Error cases (file not found, invalid input)
+- Round-trip: md→bike→md produces equivalent Markdown
 
 ## Code Organization
 
 ```
-mdtobike/
+bikemark/
 ├── main.go                    # Entry point with error handling
 ├── cmd/                       # Cobra commands
-│   ├── root.go                # Root command (the convert command)
+│   ├── root.go                # Root command (bidirectional conversion)
 │   ├── root_test.go           # Root command tests
-│   ├── convert_test.go        # End-to-end conversion tests
+│   ├── convert_test.go        # End-to-end conversion tests (both directions)
 │   ├── errors.go              # Sentinel errors
 │   ├── version.go             # Version subcommand
 │   └── completion.go          # Shell completion subcommand
@@ -181,10 +212,14 @@ mdtobike/
 │   ├── bike/                  # Bike document model + XHTML renderer (no Markdown knowledge)
 │   │   ├── bike.go            # Types: Document, Row, InlineNode, IDGenerator
 │   │   ├── render.go          # XHTML rendering with span wrapping
+│   │   ├── parse.go           # Parse .bike XHTML → Document
 │   │   └── bike_test.go
 │   ├── convert/               # Markdown AST → Bike document transformation
 │   │   ├── convert.go         # goldmark parsing + heading hierarchy + block/inline mapping
 │   │   └── convert_test.go
+│   ├── markdown/              # Bike document → Markdown text
+│   │   ├── render.go          # Render Bike Document as Markdown
+│   │   └── render_test.go
 │   └── version/               # Build-time version info
 │       └── version.go
 ├── bin/                       # Development scripts
@@ -219,9 +254,9 @@ Each script follows a common scaffolding pattern (from web-to-markdown-apple):
 `build.sh` and `install.sh` inject version info automatically:
 
 ```bash
-go build -ldflags "-X github.com/atdrendel/mdtobike/internal/version.Version=dev \
-  -X github.com/atdrendel/mdtobike/internal/version.Commit=$(git rev-parse --short HEAD) \
-  -X github.com/atdrendel/mdtobike/internal/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" .
+go build -ldflags "-X github.com/atdrendel/bikemark/internal/version.Version=dev \
+  -X github.com/atdrendel/bikemark/internal/version.Commit=$(git rev-parse --short HEAD) \
+  -X github.com/atdrendel/bikemark/internal/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" .
 ```
 
 ## Bike Format Specification
@@ -486,23 +521,96 @@ When a lower-level heading follows a higher-level heading (e.g., `## H2` followe
 | `==highlight==` | `<mark>highlight</mark>` |
 | Plain text (adjacent to formatting) | `<span>text</span>` |
 
+## Bike-to-Markdown Mapping
+
+### Block-Level Mapping
+
+| Bike Row Type | GFM Element | Notes |
+|---|---|---|
+| `data-type="heading"` | `#` heading | Nesting depth determines heading level (depth 0 = `#`, depth 1 = `##`, etc.) |
+| *(no data-type)* / body | Paragraph | Plain paragraph |
+| `data-type="quote"` | `>` blockquote | Sibling quote rows become lines in one blockquote |
+| `data-type="code"` | ```` ``` ```` fenced code | Consecutive code siblings merge into one fenced block |
+| `data-type="hr"` | `---` | Horizontal rule |
+| `data-type="unordered"` | `- item` | Unordered list; nesting preserved |
+| `data-type="ordered"` | `1. item` | Ordered list; nesting preserved |
+| `data-type="task"` (no `data-done`) | `- [ ] task` | Uncompleted task |
+| `data-type="task"` + `data-done` | `- [x] task` | Completed task |
+| `data-type="note"` | Paragraph | Lossy — no Markdown equivalent for note rows |
+
+### Heading Hierarchy (Tree-to-Flat Conversion)
+
+The reverse of flat-to-tree. Bike nesting depth determines the Markdown heading level:
+
+- Top-level heading row → `# H1`
+- Heading nested 1 deep → `## H2`
+- Heading nested 2 deep → `### H3`
+- Non-heading children of a heading → rendered after the heading (as paragraphs, lists, etc.)
+
+### Inline Mapping
+
+| Bike HTML | GFM |
+|---|---|
+| `<strong>` | `**bold**` |
+| `<em>` | `*italic*` |
+| `<code>` | `` `code` `` |
+| `<a href="url">text</a>` | `[text](url)` |
+| `<s>` | `~~strike~~` |
+| `<mark>` | `==highlight==` |
+| `<span>` | *(stripped — content becomes plain text)* |
+
+## Losslessness
+
+The goal is lossless round-trip conversion to the greatest extent possible. Known lossy areas:
+
+### Markdown → Bike (lossy)
+
+- **Heading levels**: all become `heading` row type; level is inferred from nesting depth (recoverable on round-trip)
+- **Image syntax**: `![alt](url)` becomes plain text body row (not recoverable)
+- **Code fence language**: `` ```go `` becomes code rows with no language info (not recoverable)
+- **Table structure**: GFM tables become body rows with " — " cell separators (heuristically recoverable)
+
+### Bike → Markdown (lossy)
+
+- **Row IDs**: every `<li>` has a unique ID; Markdown has no equivalent (not recoverable)
+- **Note rows**: `data-type="note"` has no Markdown equivalent; converted to paragraph (not recoverable as note)
+- **Task timestamps**: `data-done="2026-02-16T14:30:47Z"` becomes `[x]`; exact timestamp lost
+
+### Round-trip safe
+
+These elements survive md→bike→md and bike→md→bike without information loss:
+- Paragraphs (body rows)
+- Bold, italic, inline code, links, strikethrough, highlight
+- Ordered and unordered lists with nesting
+- Blockquotes
+- Horizontal rules
+- Tasks (checked/unchecked status)
+- Heading hierarchy (level preserved via nesting depth)
+
 ## Conversion Pipeline Architecture
 
-The conversion follows three phases:
+The tool supports two conversion directions, sharing a common Bike document model.
 
-### 1. Parse (Markdown → AST)
-Read Markdown input and produce an abstract syntax tree. This phase uses a Markdown parser library.
+### Markdown → Bike (existing)
 
-### 2. Transform (AST → Bike Document Model)
-Walk the AST and build a Bike document model — a tree of rows with types, content, and nesting. This is where heading hierarchy is resolved (flat headings → nested tree).
+Three phases:
+1. **Parse** (Markdown → AST): Read Markdown, produce goldmark AST
+2. **Transform** (AST → Bike Document Model): Walk AST, build heading hierarchy, map blocks/inlines
+3. **Render** (Bike Model → XHTML): Serialize to `.bike` format with IDs, indentation, span wrapping
 
-### 3. Render (Bike Model → XHTML Output)
-Serialize the Bike document model to the `.bike` XHTML format with proper indentation, IDs, and inline formatting.
+### Bike → Markdown (to be implemented)
 
-Package separation:
-- `internal/bike/` — Bike document model types and XHTML renderer (no Markdown knowledge)
+Three phases:
+1. **Parse** (XHTML → Bike Document Model): Parse `.bike` XML, extract rows, types, inline content
+2. **Transform** (Bike Model → Markdown IR): Flatten heading tree, merge code rows, map types
+3. **Render** (Markdown IR → Text): Serialize to GFM text
+
+### Package separation
+
+- `internal/bike/` — Bike document model types, XHTML renderer, and XHTML parser (shared by both directions)
 - `internal/convert/` — Markdown AST → Bike document transformation (uses goldmark)
-- `cmd/` — Orchestrates the pipeline, wires parse → transform → render
+- `internal/markdown/` — Bike document → Markdown text rendering
+- `cmd/` — Orchestrates the pipeline: detect format, wire appropriate parse → transform → render
 
 ## Checklist for Changes
 
@@ -511,6 +619,8 @@ Package separation:
 - [ ] Returns correct exit codes (0 success, 1 error, 2 misuse)
 - [ ] Works in pipes (non-TTY mode)
 - [ ] Has unit tests
-- [ ] Output is valid Bike format that opens in Bike.app
+- [ ] Output is valid Bike format that opens in Bike.app (when converting to Bike)
+- [ ] Output is valid Markdown (when converting from Bike)
+- [ ] Round-trip test: md→bike→md produces equivalent Markdown
 - [ ] **`cmd.SilenceUsage = true`** in `RunE` for the root command
 - [ ] **Simulate the full user experience**: mentally run the command and read the complete output — check for redundant messages, unclear feedback, or missing information

@@ -9,18 +9,18 @@ import (
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish|powershell]",
 	Short: "Generate shell completion scripts",
-	Long: `Generate shell completion scripts for mdtobike.
+	Long: `Generate shell completion scripts for bikemark.
 
 To load completions:
 
 Bash:
-  $ source <(mdtobike completion bash)
+  $ source <(bikemark completion bash)
 
   # To load completions for each session, execute once:
   # Linux:
-  $ mdtobike completion bash > /etc/bash_completion.d/mdtobike
+  $ bikemark completion bash > /etc/bash_completion.d/bikemark
   # macOS:
-  $ mdtobike completion bash > $(brew --prefix)/etc/bash_completion.d/mdtobike
+  $ bikemark completion bash > $(brew --prefix)/etc/bash_completion.d/bikemark
 
 Zsh:
   # If shell completion is not already enabled in your environment,
@@ -28,21 +28,21 @@ Zsh:
   $ echo "autoload -U compinit; compinit" >> ~/.zshrc
 
   # To load completions for each session, execute once:
-  $ mdtobike completion zsh > "${fpath[1]}/_mdtobike"
+  $ bikemark completion zsh > "${fpath[1]}/_bikemark"
 
   # You will need to start a new shell for this setup to take effect.
 
 Fish:
-  $ mdtobike completion fish | source
+  $ bikemark completion fish | source
 
   # To load completions for each session, execute once:
-  $ mdtobike completion fish > ~/.config/fish/completions/mdtobike.fish
+  $ bikemark completion fish > ~/.config/fish/completions/bikemark.fish
 
 PowerShell:
-  PS> mdtobike completion powershell | Out-String | Invoke-Expression
+  PS> bikemark completion powershell | Out-String | Invoke-Expression
 
   # To load completions for every new session, run:
-  PS> mdtobike completion powershell > mdtobike.ps1
+  PS> bikemark completion powershell > bikemark.ps1
   # and source this file from your PowerShell profile.
 `,
 	DisableFlagsInUseLine: true,

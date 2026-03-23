@@ -16,7 +16,7 @@ func TestRootCommand(t *testing.T) {
 		{
 			name:       "help flag shows usage",
 			args:       []string{"--help"},
-			wantOutput: "mdtobike converts GitHub-flavored Markdown",
+			wantOutput: "bikemark converts between GitHub-flavored Markdown",
 			wantErr:    false,
 		},
 		{
@@ -58,5 +58,23 @@ func TestRootCommand(t *testing.T) {
 				t.Errorf("Execute() output = %q, want to contain %q", output, tt.wantOutput)
 			}
 		})
+	}
+}
+
+func TestHelpShowsFlags(t *testing.T) {
+	cmd := NewRootCmd()
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetArgs([]string{"--help"})
+
+	_ = cmd.Execute()
+	output := buf.String()
+
+	flags := []string{"-m, --markdown", "-b, --bike"}
+	for _, flag := range flags {
+		if !strings.Contains(output, flag) {
+			t.Errorf("help output missing %q:\n%s", flag, output)
+		}
 	}
 }
