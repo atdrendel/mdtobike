@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/atdrendel/mdtobike/internal/bike"
+	"github.com/atdrendel/bikemark/internal/bike"
 )
 
 // fixedTime returns a fixed clock for deterministic test output.
@@ -121,7 +121,7 @@ func TestFencedCodeBlock(t *testing.T) {
 	// Should produce one code row per line, no language info
 	assertContains(t, output, `data-type="code"`)
 	assertContains(t, output, `<p>func main() {</p>`)
-	assertContains(t, output, `<p>  fmt.Println(&#34;hello&#34;)</p>`) // quotes get HTML-escaped
+	assertContains(t, output, `<p>  fmt.Println("hello")</p>`) // quotes preserved as-is in text content
 	assertContains(t, output, `<p>}</p>`)
 }
 
@@ -574,5 +574,110 @@ func assertNotContains(t *testing.T, s, substr string) {
 	t.Helper()
 	if strings.Contains(s, substr) {
 		t.Errorf("output should not contain %q\ngot:\n%s", substr, s)
+	}
+}
+
+func TestMergeTextRuns(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []bike.InlineNode
+		want  int // expected number of nodes after merge
+	}{
+		{
+			name:  "nil input",
+			input: nil,
+			want:  0,
+		},
+		{
+			name:  "single TextRun",
+			input: []bike.InlineNode{bike.TextRun{Text: "hello"}},
+			want:  1,
+		},
+		{
+			name: "two adjacent TextRuns merge",
+			input: []bike.InlineNode{
+				bike.TextRun{Text: "hello "},
+				bike.TextRun{Text: "world"},
+			},
+			want: 1,
+		},
+		{
+			name: "three adjacent TextRuns merge",
+			input: []bike.InlineNode{
+				bike.TextRun{Text: "a"},
+				bike.TextRun{Text: "b"},
+				bike.TextRun{Text: "c"},
+			},
+			want: 1,
+		},
+		{
+			name: "TextRun separated by formatting stays separate",
+			input: []bike.InlineNode{
+				bike.TextRun{Text: "before "},
+				bike.StrongRun{Children: []bike.InlineNode{bike.TextRun{Text: "bold"}}},
+				bike.TextRun{Text: " after"},
+			},
+			want: 3,
+		},
+		{
+			name: "only trailing TextRuns merge",
+			input: []bike.InlineNode{
+				bike.StrongRun{Children: []bike.InlineNode{bike.TextRun{Text: "bold"}}},
+				bike.TextRun{Text: " part1"},
+				bike.TextRun{Text: " part2"},
+			},
+			want: 2, // StrongRun + merged TextRun
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := mergeTextRuns(tt.input)
+			if len(result) != tt.want {
+				t.Errorf("mergeTextRuns() returned %d nodes, want %d", len(result), tt.want)
+			}
+		})
+	}
+}
+
+func TestMergeTextRunsContent(t *testing.T) {
+	input := []bike.InlineNode{
+		bike.TextRun{Text: "hello "},
+		bike.TextRun{Text: "world"},
+	}
+	result := mergeTextRuns(input)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 node, got %d", len(result))
+	}
+	tr, ok := result[0].(bike.TextRun)
+	if !ok {
+		t.Fatalf("expected TextRun, got %T", result[0])
+	}
+	if tr.Text != "hello world" {
+		t.Errorf("merged text = %q, want %q", tr.Text, "hello world")
+	}
+}
+
+func TestFromMarkdownMergesAdjacentTextRuns(t *testing.T) {
+	// The tilde in "~5" causes goldmark to split text nodes because of the
+	// GFM strikethrough extension. After merging, there should be a single
+	// TextRun for the trailing text.
+	md := "**Bold** text with ~5 items"
+	doc, err := fromMarkdown([]byte(md), fixedTime)
+	if err != nil {
+		t.Fatalf("fromMarkdown() error = %v", err)
+	}
+	if len(doc.Rows) < 1 {
+		t.Fatalf("expected at least 1 row")
+	}
+	// Count TextRun nodes — should be exactly 1 (the text after "Bold")
+	textRunCount := 0
+	for _, node := range doc.Rows[0].Content {
+		if _, ok := node.(bike.TextRun); ok {
+			textRunCount++
+		}
+	}
+	if textRunCount != 1 {
+		t.Errorf("expected 1 TextRun (merged), got %d; content: %v", textRunCount, doc.Rows[0].Content)
 	}
 }

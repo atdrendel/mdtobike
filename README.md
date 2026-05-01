@@ -1,37 +1,40 @@
-# mdtobike
+# bikemark
 
-Convert GitHub-flavored Markdown to [Bike](https://www.hogbaysoftware.com/bike/) outline format.
+Convert between GitHub-flavored Markdown and [Bike](https://www.hogbaysoftware.com/bike/) outline format.
 
 ## Installation
 
 ### From source
 
 ```bash
-go install github.com/atdrendel/mdtobike@latest
+go install github.com/atdrendel/bikemark@latest
 ```
 
 ### Build locally
 
 ```bash
-git clone https://github.com/atdrendel/mdtobike.git
-cd mdtobike
+git clone https://github.com/atdrendel/bikemark.git
+cd bikemark
 go build .
 ```
 
 ## Usage
 
 ```bash
-# Convert a file
-mdtobike input.md > output.bike
+# Convert Markdown to Bike
+bikemark input.md > output.bike
+
+# Convert Bike to Markdown
+bikemark input.bike > output.md
 
 # Convert from stdin
-cat input.md | mdtobike > output.bike
+cat input.md | bikemark > output.bike
 
 # Show help
-mdtobike --help
+bikemark --help
 
 # Show version
-mdtobike version
+bikemark version
 ```
 
 ## Shell Completion
@@ -40,13 +43,13 @@ Generate shell completion scripts:
 
 ```bash
 # Bash
-source <(mdtobike completion bash)
+source <(bikemark completion bash)
 
 # Zsh
-mdtobike completion zsh > "${fpath[1]}/_mdtobike"
+bikemark completion zsh > "${fpath[1]}/_bikemark"
 
 # Fish
-mdtobike completion fish | source
+bikemark completion fish | source
 ```
 
 ## Development
@@ -68,7 +71,7 @@ mdtobike completion fish | source
 ## Project Structure
 
 ```
-mdtobike/
+bikemark/
 ├── main.go              # Entry point
 ├── cmd/                 # Cobra commands
 │   ├── root.go          # Root command (conversion)
@@ -77,6 +80,8 @@ mdtobike/
 │   └── completion.go    # Shell completion
 ├── internal/
 │   ├── bike/            # Bike format types and rendering
+│   ├── convert/         # Markdown → Bike conversion
+│   ├── markdown/        # Bike → Markdown conversion
 │   └── version/         # Build-time version info
 ├── bin/                 # Development scripts
 │   ├── test.sh          # Run tests

@@ -1,4 +1,4 @@
-module github.com/atdrendel/mdtobike
+module github.com/atdrendel/bikemark
 
 go 1.22.5
 

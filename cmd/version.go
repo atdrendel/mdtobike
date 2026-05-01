@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/atdrendel/mdtobike/internal/version"
+	"github.com/atdrendel/bikemark/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +12,7 @@ var fullVersion bool
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
-	Long:  `Display the version of mdtobike, optionally with build details.`,
+	Long:  `Display the version of bikemark, optionally with build details.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if fullVersion {
 			fmt.Fprintln(cmd.OutOrStdout(), version.Full())

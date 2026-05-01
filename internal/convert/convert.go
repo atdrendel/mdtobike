@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atdrendel/mdtobike/internal/bike"
+	"github.com/atdrendel/bikemark/internal/bike"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -336,7 +336,7 @@ func (c *converter) extractTableRowCells(row ast.Node) []bike.InlineNode {
 		first = false
 		result = append(result, c.extractInlines(cell)...)
 	}
-	return result
+	return mergeTextRuns(result)
 }
 
 // extractInlines collects inline content from a block node's children.
@@ -344,6 +344,28 @@ func (c *converter) extractInlines(n ast.Node) []bike.InlineNode {
 	var result []bike.InlineNode
 	for child := n.FirstChild(); child != nil; child = child.NextSibling() {
 		result = append(result, c.convertInline(child)...)
+	}
+	return mergeTextRuns(result)
+}
+
+// mergeTextRuns coalesces adjacent TextRun nodes in a slice of InlineNodes.
+// This prevents goldmark's text-node splitting from producing multiple <span>
+// elements where the original had one.
+func mergeTextRuns(nodes []bike.InlineNode) []bike.InlineNode {
+	if len(nodes) <= 1 {
+		return nodes
+	}
+	result := make([]bike.InlineNode, 0, len(nodes))
+	for _, node := range nodes {
+		if tr, ok := node.(bike.TextRun); ok {
+			if len(result) > 0 {
+				if prev, ok := result[len(result)-1].(bike.TextRun); ok {
+					result[len(result)-1] = bike.TextRun{Text: prev.Text + tr.Text}
+					continue
+				}
+			}
+		}
+		result = append(result, node)
 	}
 	return result
 }

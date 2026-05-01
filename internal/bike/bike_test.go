@@ -494,8 +494,57 @@ func TestRenderHTMLEscaping(t *testing.T) {
 	}
 
 	output := renderToString(t, doc)
-	assertContains(t, output, `&lt;script&gt;alert(&#34;xss&#34;)&lt;/script&gt;`)
+	// Text content should escape < > & but NOT quotes or apostrophes
+	// (Bike.app leaves ' and " as literal characters in text content)
+	assertContains(t, output, `&lt;script&gt;alert("xss")&lt;/script&gt;`)
 	assertNotContains(t, output, `<script>`)
+}
+
+func TestRenderTextPreservesApostrophes(t *testing.T) {
+	doc := &Document{
+		RootID: "root1",
+		Rows: []*Row{
+			{
+				ID:      "r1",
+				Type:    RowTypeBody,
+				Content: []InlineNode{TextRun{Text: "Berlin's best"}},
+			},
+		},
+	}
+	output := renderToString(t, doc)
+	assertContains(t, output, `Berlin's best`)
+	assertNotContains(t, output, `&#39;`)
+}
+
+func TestRenderCodePreservesQuotes(t *testing.T) {
+	doc := &Document{
+		RootID: "root1",
+		Rows: []*Row{
+			{
+				ID:      "r1",
+				Type:    RowTypeBody,
+				Content: []InlineNode{CodeRun{Text: `"hello"`}},
+			},
+		},
+	}
+	output := renderToString(t, doc)
+	assertContains(t, output, `<code>"hello"</code>`)
+	assertNotContains(t, output, `&#34;`)
+}
+
+func TestRenderTextEscapesAmpersandAndAngleBrackets(t *testing.T) {
+	doc := &Document{
+		RootID: "root1",
+		Rows: []*Row{
+			{
+				ID:      "r1",
+				Type:    RowTypeBody,
+				Content: []InlineNode{TextRun{Text: "A & B < C > D"}},
+			},
+		},
+	}
+	output := renderToString(t, doc)
+	assertContains(t, output, `A &amp; B &lt; C &gt; D`)
 }
 
 func renderToString(t *testing.T, doc *Document) string {

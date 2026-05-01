@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/atdrendel/mdtobike/cmd"
+	"github.com/atdrendel/bikemark/cmd"
 )
 
 func main() {
