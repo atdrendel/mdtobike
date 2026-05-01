@@ -88,6 +88,6 @@ bikemark/
 │   ├── build.sh         # Build with version info
 │   ├── format.sh        # Format code
 │   └── install.sh       # Build and install to /usr/local/bin
-├── CLAUDE.md            # Development guidelines
+├── AGENTS.md            # Development guidelines
 └── README.md
 ```
