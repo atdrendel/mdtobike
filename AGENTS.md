@@ -227,7 +227,7 @@ bikemark/
 │   ├── build.sh               # Build with version info
 │   ├── format.sh              # Format code (gofmt)
 │   └── install.sh             # Build and install to /usr/local/bin
-├── CLAUDE.md
+├── AGENTS.md
 ├── README.md
 └── go.mod
 ```
